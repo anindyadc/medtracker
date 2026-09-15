@@ -14,25 +14,36 @@
   <link rel="apple-touch-icon" href="icons/icon-192.png" />
 </head>
 <body>
-  <!-- Login Overlay -->
+  <!-- Login Overlay (Dual Column) -->
   <div id="loginOverlay" class="login-overlay" role="dialog" aria-labelledby="loginTitle" aria-hidden="true">
-    <div class="login-card animate-enter">
-      <h2 id="loginTitle">🔐 Welcome to MedTracker</h2>
-      <p class="login-subtitle" id="loginSubtitle">Enter your password to access the app</p>
-      <form id="loginForm" autocomplete="off">
-        <div class="password-input-wrapper">
-          <input type="password" id="loginPassword" placeholder="Password" required maxlength="64" autocomplete="new-password" />
-          <button type="button" id="togglePassword" class="toggle-password" aria-label="Toggle password visibility">
-            <span id="toggleIcon">👁</span>
-          </button>
+    <div class="login-container animate-enter">
+      <!-- Left Column — Brand Info -->
+      <div class="login-brand">
+        <div class="login-brand-icon">💊</div>
+        <h1 class="login-brand-title">MedTracker</h1>
+        <p class="login-brand-desc">Medicine intake tracker for caregivers</p>
+        <p class="login-brand-sub">Track your mother's pills, get reorder alerts, and see missed doses.</p>
+      </div>
+
+      <!-- Right Column — Login Form -->
+      <div class="login-card">
+        <h2 id="loginTitle">🔐 Unlock</h2>
+        <p class="login-subtitle" id="loginSubtitle">Enter your password to access the app</p>
+        <form id="loginForm" autocomplete="off">
+          <div class="password-input-wrapper">
+            <input type="password" id="loginPassword" placeholder="Password" required maxlength="64" autocomplete="current-password" />
+            <button type="button" id="togglePassword" class="toggle-password" aria-label="Toggle password visibility">
+              <span id="toggleIcon">👁</span>
+            </button>
+          </div>
+          <div id="loginError" class="error-msg" aria-live="polite"></div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Unlock</button>
+          </div>
+        </form>
+        <div class="login-footer">
+          <button id="btnChangePass" class="btn btn-secondary btn-sm">Change Password</button>
         </div>
-        <div id="loginError" class="error-msg" aria-live="polite"></div>
-        <div class="form-actions">
-          <button type="submit" class="btn btn-primary">Unlock</button>
-        </div>
-      </form>
-      <div class="login-footer">
-        <button id="btnChangePass" class="btn btn-secondary btn-sm">Change Password</button>
       </div>
     </div>
   </div>

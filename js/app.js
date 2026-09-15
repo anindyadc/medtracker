@@ -12,7 +12,8 @@ async function initApp() {
   console.log('Initializing MedTracker v0.2...');
 
   // Check authentication
-  if (!checkAuth()) return;
+  const authOk = await checkAuth();
+  if (!authOk) return;
 
   // Load data
   const data = window.Storage.getLocalData();
@@ -68,20 +69,27 @@ async function initApp() {
 
 /* ===== AUTH ===== */
 
-function checkAuth() {
+async function checkAuth() {
   if (!window.Auth.hasPassword()) {
     // First time setup — set default password "medtracker"
-    window.Auth.setNewPassword('medtracker').then(() => {
-      document.getElementById('loginSubtitle').textContent = 'Your default password is: medtracker (please change it!)';
-    }).catch(() => {});
-    return true; // Let the login overlay handle it
+    try {
+      await window.Auth.setNewPassword('medtracker');
+    } catch (err) {
+      console.error('Default password setup failed:', err);
+    }
+    document.getElementById('loginSubtitle').textContent = 'Your default password is: medtracker (please change it!)';
+    // Show login overlay and wait for user to unlock
+    document.getElementById('loginOverlay').style.display = 'flex';
+    document.getElementById('appRoot').style.display = 'none';
+    document.getElementById('loginPassword').focus();
+    return false;
   }
 
   if (window.Auth.isUnlocked()) {
     return true;
   }
 
-  // Show login overlay
+  // Show login overlay (password exists but session is locked)
   document.getElementById('loginOverlay').style.display = 'flex';
   document.getElementById('appRoot').style.display = 'none';
   document.getElementById('loginError').textContent = '';
@@ -132,6 +140,20 @@ function lockApp() {
 /* ===== EVENT LISTENERS ===== */
 
 function setupEventListeners() {
+  // Password toggle function (top-level so it works anytime)
+  window.togglePwd = function(inputId, iconId) {
+    const input = document.getElementById(inputId);
+    const icon = iconId ? document.getElementById(iconId) : null;
+    if (!input) return;
+    if (input.type === 'password') {
+      input.type = 'text';
+      if (icon) icon.textContent = '🙈';
+    } else {
+      input.type = 'password';
+      if (icon) icon.textContent = '👁';
+    }
+  };
+
   // Lock button
   document.getElementById('btnLock')?.addEventListener('click', lockApp);
 
@@ -143,7 +165,7 @@ function setupEventListeners() {
 
   // Toggle password visibility
   document.getElementById('togglePassword')?.addEventListener('click', () => {
-    togglePwd('loginPassword', 'toggleIcon');
+    window.togglePwd('loginPassword', 'toggleIcon');
   });
 
   // Change password modal — login overlay
@@ -153,7 +175,7 @@ function setupEventListeners() {
 
   // Toggle new password visibility
   document.getElementById('toggleNewPass')?.addEventListener('click', () => {
-    togglePwd('newPassword', null);
+    window.togglePwd('newPassword', null);
   });
 
   // Change password form
@@ -572,18 +594,20 @@ function renderAllSections(data) {
 
 /* ===== INIT ON DOM LOAD ===== */
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   // Show login overlay first (or skip if already unlocked)
-  if (window.Auth.hasPassword() && window.Auth.isUnlocked()) {
-    // Already unlocked this session — initialize directly
-    isAppReady = true;
-    document.getElementById('appRoot').style.display = '';
-    initApp();
-  } else {
-    // Show login overlay
+  const unlocked = window.Auth.hasPassword() && window.Auth.isUnlocked();
+  if (!unlocked) {
     document.getElementById('loginOverlay').style.display = 'flex';
     document.getElementById('appRoot').style.display = 'none';
     document.getElementById('loginError').textContent = '';
     document.getElementById('loginPassword').focus();
+  }
+
+  // Always run checkAuth to handle first-time setup
+  const authOk = await checkAuth();
+  if (authOk) {
+    isAppReady = true;
+    initApp();
   }
 });
