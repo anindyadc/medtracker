@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="MedTracker — Medicine intake tracker for caregivers. Track mother's pills, get reorder alerts, and see missed doses.">
+  <title>MedTracker — Medicine Intake Tracker</title>
+  <link rel="stylesheet" href="css/styles.css" />
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#2563eb" />
+  <!-- iOS standalone -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+</head>
+<body>
+  <header class="app-header">
+    <h1>💊 MedTracker</h1>
+    <nav class="nav-tabs" role="tablist" aria-label="Main navigation">
+      <button role="tab" aria-selected="true" data-section="dashboard" class="nav-tab active">Dashboard</button>
+      <button role="tab" aria-selected="false" data-section="medications" class="nav-tab">Medications</button>
+      <button role="tab" aria-selected="false" data-section="inventory" class="nav-tab">Inventory</button>
+      <button role="tab" aria-selected="false" data-section="settings" class="nav-tab">Settings</button>
+    </nav>
+    <div class="sync-status" aria-live="polite" id="syncStatus">
+      <span class="sync-dot" id="syncDot"></span>
+      <span id="syncLabel">Not synced</span>
+    </div>
+  </header>
+
+  <main>
+    <!-- ==================== DASHBOARD ==================== -->
+    <section id="section-dashboard" class="section active" role="tabpanel" aria-label="Dashboard">
+      <div class="section-header">
+        <h2>Today's Medications</h2>
+        <span id="todayDate" class="date-badge"></span>
+      </div>
+      <div id="dashboardContent">
+        <p class="empty-state">No medications configured yet. Go to <strong>Medications</strong> to add one.</p>
+      </div>
+      <div id="missedDoses" class="alert-box alert-warn hidden" role="alert"></div>
+      <div id="reorderAlerts" class="alert-box alert-critical hidden" role="alert"></div>
+    </section>
+
+    <!-- ==================== MEDICATIONS ==================== -->
+    <section id="section-medications" class="section" role="tabpanel" aria-label="Medications">
+      <div class="section-header">
+        <h2>Medications</h2>
+        <button id="btnAddMed" class="btn btn-primary" aria-label="Add new medication">+ Add Medication</button>
+      </div>
+      <div id="medicationsList"></div>
+      <!-- Add / Edit Medication Form (hidden by default) -->
+      <div id="medFormContainer" class="form-container hidden">
+        <h3 id="medFormTitle">Add Medication</h3>
+        <form id="medForm" novalidate>
+          <input type="hidden" id="medFormId" />
+          <label for="medName">Medicine Name *</label>
+          <input type="text" id="medName" required placeholder="e.g. Lisinopril" />
+          <label for="medDosage">Dosage *</label>
+          <input type="text" id="medDosage" required placeholder="e.g. 10mg" />
+          <label for="medForm">Form</label>
+          <select id="medForm">
+            <option value="tablet">Tablet</option>
+            <option value="capsule">Capsule</option>
+            <option value="liquid">Liquid</option>
+            <option value="injection">Injection</option>
+          </select>
+          <fieldset>
+            <legend>Schedule — Times of Day</legend>
+            <div id="scheduleTimes" class="schedule-inputs">
+              <div class="time-row">
+                <label>Time</label>
+                <input type="time" class="sched-time" value="08:00" required />
+                <button type="button" class="btn btn-danger btn-sm remove-time" aria-label="Remove time">×</button>
+              </div>
+            </div>
+            <button type="button" id="btnAddTime" class="btn btn-sm btn-secondary">+ Add Time</button>
+          </fieldset>
+          <fieldset>
+            <legend>Days of Week</legend>
+            <div id="scheduleDays" class="day-checkboxes">
+              <label><input type="checkbox" value="mon" checked /> Mon</label>
+              <label><input type="checkbox" value="tue" checked /> Tue</label>
+              <label><input type="checkbox" value="wed" checked /> Wed</label>
+              <label><input type="checkbox" value="thu" checked /> Thu</label>
+              <label><input type="checkbox" value="fri" checked /> Fri</label>
+              <label><input type="checkbox" value="sat" /> Sat</label>
+              <label><input type="checkbox" value="sun" /> Sun</label>
+            </div>
+            <label class="inline-label">
+              <input type="checkbox" id="everyDayCheck" /> Every day (override day checkboxes)
+            </label>
+          </fieldset>
+          <fieldset>
+            <legend>Inventory</legend>
+            <label for="medTotalPills">Total Pills *</label>
+            <input type="number" id="medTotalPills" min="0" value="30" required />
+            <label for="medRemainingPills">Remaining Pills *</label>
+            <input type="number" id="medRemainingPills" min="0" value="30" required />
+            <label for="medRefillThreshold">Refill Threshold</label>
+            <input type="number" id="medRefillThreshold" min="0" value="5" />
+          </fieldset>
+          <label for="medNotes">Notes</label>
+          <textarea id="medNotes" placeholder="e.g. Take with food"></textarea>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Save</button>
+            <button type="button" id="btnCancelMed" class="btn btn-secondary">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- ==================== INVENTORY ==================== -->
+    <section id="section-inventory" class="section" role="tabpanel" aria-label="Inventory">
+      <div class="section-header">
+        <h2>Inventory Status</h2>
+      </div>
+      <div id="inventoryContent"></div>
+    </section>
+
+    <!-- ==================== SETTINGS ==================== -->
+    <section id="section-settings" class="section" role="tabpanel" aria-label="Settings">
+      <div class="section-header">
+        <h2>Settings</h2>
+      </div>
+      <div class="form-container">
+        <h3>GitHub Gist Sync</h3>
+        <p class="form-help">Store your data in a GitHub Gist. You need a <a href="https://github.com/settings/tokens/new?scopes=gist" target="_blank" rel="noopener">GitHub personal access token</a> (classic, gist scope).</p>
+        <label for="gistToken">Personal Access Token</label>
+        <input type="password" id="gistToken" placeholder="ghp_xxxxxxxxxxxx" autocomplete="off" />
+        <label for="gistId">Gist ID (leave blank to create new)</label>
+        <input type="text" id="gistId" placeholder="e.g. abc123..." />
+        <div class="form-actions">
+          <button id="btnConnectGist" class="btn btn-primary">Connect / Save</button>
+          <button id="btnSyncNow" class="btn btn-secondary">Sync Now</button>
+        </div>
+        <p id="gistStatus" class="form-help"></p>
+        <hr />
+        <h3>Notifications</h3>
+        <label class="inline-label">
+          <input type="checkbox" id="notifEnabled" checked />
+          Enable browser notifications
+        </label>
+        <label for="notifLeadMinutes">Reminder lead time (minutes)</label>
+        <input type="number" id="notifLeadMinutes" min="0" max="60" value="15" />
+        <hr />
+        <h3>Data</h3>
+        <button id="btnExport" class="btn btn-secondary">Export JSON</button>
+        <button id="btnImport" class="btn btn-secondary">Import JSON</button>
+        <input type="file" id="importFile" accept=".json" class="hidden" />
+      </div>
+    </section>
+  </main>
+
+  <!-- Toast notification area -->
+  <div id="toastContainer" class="toast-container" aria-live="assertive"></div>
+
+  <!-- Footer -->
+  <footer class="app-footer">
+    <p>MedTracker v0.1 — Caregiver medicine tracker</p>
+  </footer>
+
+  <script src="js/storage.js"></script>
+  <script src="js/notifications.js"></script>
+  <script src="js/scheduler.js"></script>
+  <script src="js/dashboard.js"></script>
+  <script src="js/medications.js"></script>
+  <script src="js/intake.js"></script>
+  <script src="js/inventory.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
