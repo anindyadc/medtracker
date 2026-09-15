@@ -14,13 +14,72 @@
   <link rel="apple-touch-icon" href="icons/icon-192.png" />
 </head>
 <body>
+  <!-- Login Overlay -->
+  <div id="loginOverlay" class="login-overlay" role="dialog" aria-labelledby="loginTitle" aria-hidden="true">
+    <div class="login-card animate-enter">
+      <h2 id="loginTitle">🔐 Welcome to MedTracker</h2>
+      <p class="login-subtitle" id="loginSubtitle">Enter your password to access the app</p>
+      <form id="loginForm" autocomplete="off">
+        <div class="password-input-wrapper">
+          <input type="password" id="loginPassword" placeholder="Password" required maxlength="64" autocomplete="new-password" />
+          <button type="button" id="togglePassword" class="toggle-password" aria-label="Toggle password visibility">
+            <span id="toggleIcon">👁</span>
+          </button>
+        </div>
+        <div id="loginError" class="error-msg" aria-live="polite"></div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">Unlock</button>
+        </div>
+      </form>
+      <div class="login-footer">
+        <button id="btnChangePass" class="btn btn-secondary btn-sm">Change Password</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Change Password Modal -->
+  <dialog id="changePassModal" aria-labelledby="changePassTitle">
+    <div class="modal-content">
+      <h3 id="changePassTitle">Change Password</h3>
+      <form id="changePassForm" autocomplete="off">
+        <label for="oldPassword">Current Password *</label>
+        <input type="password" id="oldPassword" required autocomplete="current-password" />
+        <label for="newPassword">New Password *</label>
+        <div class="password-input-wrapper">
+          <input type="password" id="newPassword" required minlength="4" autocomplete="new-password" />
+          <button type="button" id="toggleNewPass" class="toggle-password" aria-label="Toggle password visibility">
+            <span>👁</span>
+          </button>
+        </div>
+        <div id="changePassError" class="error-msg" aria-live="polite"></div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">Save</button>
+          <button type="button" id="btnCancelPass" class="btn btn-secondary">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- App Root (hidden when locked) -->
+  <div id="appRoot">
   <header class="app-header">
-    <h1>💊 MedTracker</h1>
+    <div class="header-top">
+      <h1>💊 MedTracker</h1>
+      <button id="btnLock" class="btn-lock" aria-label="Lock app" title="Lock app">🔒</button>
+    </div>
     <nav class="nav-tabs" role="tablist" aria-label="Main navigation">
-      <button role="tab" aria-selected="true" data-section="dashboard" class="nav-tab active">Dashboard</button>
-      <button role="tab" aria-selected="false" data-section="medications" class="nav-tab">Medications</button>
-      <button role="tab" aria-selected="false" data-section="inventory" class="nav-tab">Inventory</button>
-      <button role="tab" aria-selected="false" data-section="settings" class="nav-tab">Settings</button>
+      <button role="tab" aria-selected="true" data-section="dashboard" class="nav-tab active">
+        <span class="nav-icon">📊</span> Dashboard
+      </button>
+      <button role="tab" aria-selected="false" data-section="medications" class="nav-tab">
+        <span class="nav-icon">💊</span> Medications
+      </button>
+      <button role="tab" aria-selected="false" data-section="inventory" class="nav-tab">
+        <span class="nav-icon">📦</span> Inventory
+      </button>
+      <button role="tab" aria-selected="false" data-section="settings" class="nav-tab">
+        <span class="nav-icon">⚙️</span> Settings
+      </button>
     </nav>
     <div class="sync-status" aria-live="polite" id="syncStatus">
       <span class="sync-dot" id="syncDot"></span>
@@ -35,6 +94,7 @@
         <h2>Today's Medications</h2>
         <span id="todayDate" class="date-badge"></span>
       </div>
+      <div class="dashboard-summary" id="dashboardSummary"></div>
       <div id="dashboardContent">
         <p class="empty-state">No medications configured yet. Go to <strong>Medications</strong> to add one.</p>
       </div>
@@ -46,20 +106,25 @@
     <section id="section-medications" class="section" role="tabpanel" aria-label="Medications">
       <div class="section-header">
         <h2>Medications</h2>
-        <button id="btnAddMed" class="btn btn-primary" aria-label="Add new medication">+ Add Medication</button>
+        <button id="btnAddMed" class="btn btn-primary" aria-label="Add new medication">
+          <span>+</span> Add Medication
+        </button>
       </div>
       <div id="medicationsList"></div>
       <!-- Add / Edit Medication Form (hidden by default) -->
       <div id="medFormContainer" class="form-container hidden">
-        <h3 id="medFormTitle">Add Medication</h3>
+        <div class="form-header">
+          <h3 id="medFormTitle">Add Medication</h3>
+          <button type="button" id="btnCloseForm" class="btn-close" aria-label="Close form">✕</button>
+        </div>
         <form id="medForm" novalidate>
           <input type="hidden" id="medFormId" />
           <label for="medName">Medicine Name *</label>
           <input type="text" id="medName" required placeholder="e.g. Lisinopril" />
           <label for="medDosage">Dosage *</label>
           <input type="text" id="medDosage" required placeholder="e.g. 10mg" />
-          <label for="medForm">Form</label>
-          <select id="medForm">
+          <label for="medFormSelect">Form</label>
+          <select id="medFormSelect">
             <option value="tablet">Tablet</option>
             <option value="capsule">Capsule</option>
             <option value="liquid">Liquid</option>
@@ -69,9 +134,8 @@
             <legend>Schedule — Times of Day</legend>
             <div id="scheduleTimes" class="schedule-inputs">
               <div class="time-row">
-                <label>Time</label>
                 <input type="time" class="sched-time" value="08:00" required />
-                <button type="button" class="btn btn-danger btn-sm remove-time" aria-label="Remove time">×</button>
+                <button type="button" class="btn btn-icon btn-danger remove-time" aria-label="Remove time">×</button>
               </div>
             </div>
             <button type="button" id="btnAddTime" class="btn btn-sm btn-secondary">+ Add Time</button>
@@ -113,18 +177,56 @@
     <!-- ==================== INVENTORY ==================== -->
     <section id="section-inventory" class="section" role="tabpanel" aria-label="Inventory">
       <div class="section-header">
-        <h2>Inventory Status</h2>
+        <h2>📦 Inventory Management</h2>
+        <div class="inventory-actions">
+          <button id="btnBatchRefill" class="btn btn-secondary btn-sm">Batch Refill</button>
+        </div>
       </div>
+      <div class="inventory-summary" id="inventorySummary"></div>
       <div id="inventoryContent"></div>
+      <!-- Adjust Inventory Modal -->
+      <dialog id="adjustInvModal" aria-labelledby="adjustInvTitle">
+        <div class="modal-content">
+          <h3 id="adjustInvTitle">Adjust Inventory</h3>
+          <form id="adjustInvForm" autocomplete="off">
+            <input type="hidden" id="adjustMedId" />
+            <label for="adjustPills">Remaining Pills</label>
+            <input type="number" id="adjustPills" min="0" required />
+            <label for="adjustNotes">Notes (optional)</label>
+            <textarea id="adjustNotes" placeholder="e.g. Refilled on Jan 15"></textarea>
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary">Save</button>
+              <button type="button" id="btnCancelAdjust" class="btn btn-secondary">Cancel</button>
+            </div>
+          </form>
+        </div>
+      </dialog>
     </section>
 
     <!-- ==================== SETTINGS ==================== -->
     <section id="section-settings" class="section" role="tabpanel" aria-label="Settings">
       <div class="section-header">
-        <h2>Settings</h2>
+        <h2>⚙️ Settings</h2>
       </div>
       <div class="form-container">
-        <h3>GitHub Gist Sync</h3>
+        <h3>Account Security</h3>
+        <div class="setting-group">
+          <div class="setting-row">
+            <span class="setting-label">App Lock</span>
+            <span class="setting-value">Enabled</span>
+          </div>
+          <button id="btnChangePassSettings" class="btn btn-secondary btn-sm">Change Password</button>
+          <button id="btnLogout" class="btn btn-danger btn-sm">Lock App</button>
+        </div>
+        <hr />
+        <h3>📊 Theme</h3>
+        <div class="setting-row">
+          <span class="setting-label">Dark Mode</span>
+          <span class="setting-value">System</span>
+          <button id="btnToggleTheme" class="btn btn-secondary btn-sm">Toggle</button>
+        </div>
+        <hr />
+        <h3>☁️ GitHub Gist Sync</h3>
         <p class="form-help">Store your data in a GitHub Gist. You need a <a href="https://github.com/settings/tokens/new?scopes=gist" target="_blank" rel="noopener">GitHub personal access token</a> (classic, gist scope).</p>
         <label for="gistToken">Personal Access Token</label>
         <input type="password" id="gistToken" placeholder="ghp_xxxxxxxxxxxx" autocomplete="off" />
@@ -136,7 +238,7 @@
         </div>
         <p id="gistStatus" class="form-help"></p>
         <hr />
-        <h3>Notifications</h3>
+        <h3>🔔 Notifications</h3>
         <label class="inline-label">
           <input type="checkbox" id="notifEnabled" checked />
           Enable browser notifications
@@ -144,7 +246,7 @@
         <label for="notifLeadMinutes">Reminder lead time (minutes)</label>
         <input type="number" id="notifLeadMinutes" min="0" max="60" value="15" />
         <hr />
-        <h3>Data</h3>
+        <h3>💾 Data</h3>
         <button id="btnExport" class="btn btn-secondary">Export JSON</button>
         <button id="btnImport" class="btn btn-secondary">Import JSON</button>
         <input type="file" id="importFile" accept=".json" class="hidden" />
@@ -154,13 +256,15 @@
 
   <!-- Toast notification area -->
   <div id="toastContainer" class="toast-container" aria-live="assertive"></div>
+  </div> <!-- /appRoot -->
 
   <!-- Footer -->
   <footer class="app-footer">
-    <p>MedTracker v0.1 — Caregiver medicine tracker</p>
+    <p>MedTracker v0.2 — Caregiver medicine tracker</p>
   </footer>
 
   <script src="js/storage.js"></script>
+  <script src="js/auth.js"></script>
   <script src="js/notifications.js"></script>
   <script src="js/scheduler.js"></script>
   <script src="js/dashboard.js"></script>
